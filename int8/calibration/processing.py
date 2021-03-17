@@ -52,7 +52,8 @@ def preprocess_imagenet(image, channels=3, height=224, width=224):
     if len(img_data.shape) == 2:
         # For images without a channel dimension, we stack
         img_data = np.stack([img_data] * 3)
-        logger.debug("Received grayscale image. Reshaped to {:}".format(img_data.shape))
+        logger.debug(
+            "Received grayscale image. Reshaped to {:}".format(img_data.shape))
     else:
         img_data = img_data.transpose([2, 0, 1])
 
@@ -62,7 +63,8 @@ def preprocess_imagenet(image, channels=3, height=224, width=224):
 
     for i in range(img_data.shape[0]):
         # Scale each pixel to [0, 1] and normalize per channel.
-        img_data[i, :, :] = (img_data[i, :, :] / 255 - mean_vec[i]) / stddev_vec[i]
+        img_data[i, :, :] = (img_data[i, :, :] / 255 -
+                             mean_vec[i]) / stddev_vec[i]
 
     return img_data
 
@@ -96,8 +98,21 @@ def preprocess_inception(image, channels=3, height=224, width=224):
     if len(img_data.shape) == 2:
         # For images without a channel dimension, we stack
         img_data = np.stack([img_data] * 3)
-        logger.debug("Received grayscale image. Reshaped to {:}".format(img_data.shape))
+        logger.debug(
+            "Received grayscale image. Reshaped to {:}".format(img_data.shape))
     else:
         img_data = img_data.transpose([2, 0, 1])
 
+    return img_data
+
+
+def preprocess_port_3head_sea(image, channels=3, height=1200, width=1920):
+    assert channels == 3 and height == 1200 and width == 1920, \
+        (channels, height, width)
+    assert image.size == (width, height)
+    img_data = np.asarray(image).astype(np.float32)
+
+    assert len(img_data.shape) == 3
+    img_data = img_data.transpose([2, 0, 1])
+    assert img_data.shape[0] == channels
     return img_data

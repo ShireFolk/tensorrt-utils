@@ -124,7 +124,7 @@ def main():
     parser.add_argument("--calibration-batch-size", help="(INT8 ONLY) The batch size to use during calibration.", type=int, default=32)
     parser.add_argument("--max-calibration-size", help="(INT8 ONLY) The max number of data to calibrate on from --calibration-data.", type=int, default=512)
     parser.add_argument("-p", "--preprocess_func", type=str, default=None, help="(INT8 ONLY) Function defined in 'processing.py' to use for pre-processing calibration data.")
-    parser.add_argument("-s", "--simple", action="store_true", help="Use SimpleCalibrator with random data instead of ImagenetCalibrator for INT8 calibration.")
+    parser.add_argument("--mode", type=str, help="The calibrator type", required=True, choices=["simple", "imagenet", "port"])
     args, _ = parser.parse_known_args()
 
     # Adjust logging verbosity
@@ -198,16 +198,26 @@ def main():
             logger.warning("INT8 not supported on this platform.")
 
         if args.int8:
-            if args.simple:
+            if args.mode == "simple":
                 from SimpleCalibrator import SimpleCalibrator # local module
                 config.int8_calibrator = SimpleCalibrator(network, config)
-            else:
+            elif args.mode == "imagenet":
                 from ImagenetCalibrator import ImagenetCalibrator, get_int8_calibrator # local module
                 config.int8_calibrator = get_int8_calibrator(args.calibration_cache,
                                                              args.calibration_data,
                                                              args.max_calibration_size,
                                                              args.preprocess_func,
                                                              args.calibration_batch_size)
+            elif args.mode == "port":
+                from ImagenetCalibrator import ImagenetCalibrator, get_calibration_files
+                from processing import preprocess_port_3head_sea
+                calib_files = get_calibration_files(args.calibration_data, args.max_calibration_size)
+                config.int8_calibrator = ImagenetCalibrator(
+                                         calibration_files=calib_files,
+                                         batch_size=args.calibration_batch_size,
+                                         cache_file=args.calibration_cache,
+                                         preprocess_func=preprocess_port_3head_sea,
+                                         input_shape=(3, 1200, 1920))
 
         logger.info("Building Engine...")
         with builder.build_engine(network, config) as engine, open(args.output, "wb") as f:
